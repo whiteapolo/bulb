@@ -14,8 +14,8 @@
 #include "path.h"
 #include "error.h"
 
-static const int MIN_BRIGHTNESS_PER = 2;
-static const int MAX_BRIGHTNESS_PER = 100;
+static const int MIN_BRIGHTNESS_PERCENTAGE = 2;
+static const int MAX_BRIGHTNESS_PERCENTAGE = 100;
 
 typedef struct {
 	string maxBrightnessPath;
@@ -24,156 +24,190 @@ typedef struct {
 	int maxBrightness;
 } Device;
 
-void die(const char *label, ERROR e)
+enum DEVICE_ACTION {
+    SET,
+    UP,
+    DONW,
+    PRINT,
+};
+
+typedef struct {
+    const char *deviceName;
+    enum DEVICE_ACTION action;
+    int amount;
+} Argument;
+
+const char *getUsage()
+{
+    return "Usage: <deviceName> <set|up|down> <amount>\n";
+}
+
+void pdie(const char *label, ERROR e)
 {
 	printError(label, e);
 	exit(EXIT_FAILURE);
 }
 
-string getBrightnessPath(const char *deviceName)
+void die(const char *fmt, ...)
 {
-	return newStr(
-			"/sys/class/backlight/%s/brightness", 
-			deviceName
-	);
+    va_list ap;
+    va_start(ap, fmt);
+    vfprintf(stderr, fmt, ap);
+    exit(EXIT_FAILURE);
 }
 
-string getMaxBrightnessPath(const char *deviceName)
+void dieUsage()
 {
-	return newStr(
-			"/sys/class/backlight/%s/max_brightness", 
-			deviceName
-	);
+    die(getUsage());
 }
 
-void initDevice(Device *device, const char *deviceName)
+Device newDevice(const char *deviceName)
 {
-	device->maxBrightnessPath = getMaxBrightnessPath(deviceName);
-	device->brightnessPath = getBrightnessPath(deviceName);
+    Device device;
+
+    device.maxBrightnessPath = newStr("/sys/class/backlight/%s/max_brightness", deviceName);
+	device.brightnessPath = newStr("/sys/class/backlight/%s/brightness", deviceName);
 
 	ERROR e;
+    e = scanFile(device.maxBrightnessPath.data, "%d", &device.maxBrightness);
+	if (e != OK)
+		pdie("initDevice", e);
 
-	if ((e = scanfFileByName(device->maxBrightnessPath.data, "%d", 
-					&device->maxBrightness)) != OK)
-	{
-		die("initDevice", e);
-	}
+    e = scanFile(device.brightnessPath.data, "%d", &device.brightness);
+	if (e != OK)
+		pdie("initDevice", e);
 
-	if ((e = scanfFileByName(device->brightnessPath.data, "%d", 
-					&device->brightness)) != OK)
-	{
-		die("initDevice", e);
-	}
+    return device;
 }
 
-void printDevice(const char *dirName)
+void printDevice(const char *fileName)
 {
-	printf("%s\n", dirName);
+	printf("%s\n", fileName);
 }
 
 void printDevices()
 {
-	forEveryRegFileInDir("/sys/class/backlight/", printDevice);
-}
-
-void printUsage()
-{
-	printf("Usage: <deviceName>\n");
+	dirTraverseVisibleFiles("/sys/class/backlight/", printDevice);
 }
 
 void writeDeviceChanges(Device device)
 {
-	ERROR e = writeFileByName(device.brightnessPath.data, 
-			                  "%d", 
-							  device.brightness);
+	ERROR e = echoToFile(
+            device.brightnessPath.data, 
+			"%d", 
+			device.brightness
+    );
 
 	if (e != OK)
-		die("writeDeviceChanges", e);
+		pdie("writeDeviceChanges", e);
 }
 
-int brightnessToPer(Device device, int b)
+int brightnessToPercentage(Device device, int b)
 {
 	return ((float)b / device.maxBrightness) * 100.0f;
 }
 
-int perToBrightness(Device device, int b)
+int percentageToBrightness(Device device, int b)
 {
 	return (b * device.maxBrightness) / 100.0f;
 }
 
-int getCurrentPer(Device device)
+int getCurrentPercentage(Device device)
 {
-	return brightnessToPer(device, device.brightness);
+	return brightnessToPercentage(device, device.brightness);
 }
 
 void setBrightness(Device device, int n)
 {
-	int newPer = n;
+	int newPercentage = n;
 
-	if (newPer > MAX_BRIGHTNESS_PER)
-		newPer = MAX_BRIGHTNESS_PER;
+	if (newPercentage > MAX_BRIGHTNESS_PERCENTAGE)
+		newPercentage = MAX_BRIGHTNESS_PERCENTAGE;
 
-	if (newPer < MIN_BRIGHTNESS_PER)
-		newPer = MIN_BRIGHTNESS_PER;
+	if (newPercentage < MIN_BRIGHTNESS_PERCENTAGE)
+		newPercentage = MIN_BRIGHTNESS_PERCENTAGE;
 
-	device.brightness = perToBrightness(device, newPer);
+	device.brightness = percentageToBrightness(device, newPercentage);
 	writeDeviceChanges(device);
 }
 
-void increaseBrightness(Device device, int n)
+void adjustBrightness(Device device, int n)
 {
-	int newPer = getCurrentPer(device) + n;
-	setBrightness(device, newPer);
+	int newPercentage = getCurrentPercentage(device) + n;
+	setBrightness(device, newPercentage);
 }
 
-void decreaseBrightness(Device device, int n)
+enum DEVICE_ACTION getAction(const char *s)
 {
-	int newPer = getCurrentPer(device) - n;
-	setBrightness(device, newPer);
+	if (!strcmp(s, "set"))  return SET;
+	if (!strcmp(s, "up"))   return UP;
+	if (!strcmp(s, "down")) return DONW;
+    die("Unkown Action: '%s'\n%s", s, getUsage());
+    return 0;
 }
 
-void brightnessAction(Device device, 
-		              strView action, 
-					  strView parm)
+const char *findDefaultDeviceName()
 {
-	if (!strIsNumeric(parm))
-		die("param should be numeric", UNKNOWN);
+    if (isdir("/sys/class/backlight/intel_backlight"))
+        return "intel_backlight";
+    if (isdir("/sys/class/backlight/acpi_video0"))
+        return "acpi_video0";
+    die("Could not find suitable devices"); 
+    return NULL;
+}
 
-	int num = strToNumeric(parm);
+Argument parseArg(int argc, char **argv)
+{
+    Argument arg;
+    arg.deviceName = findDefaultDeviceName();
 
-	if (strIsEqualC(action, "set"))
-		setBrightness(device, num);
-	else if (strIsEqualC(action, "up"))
-		increaseBrightness(device, num);
-	else if (strIsEqualC(action, "down"))
-		decreaseBrightness(device, num);
-	else
-		printUsage();
+    if (argc == 1) {
+        arg.action = PRINT;
+        return arg;
+    }
+
+    if (argc != 3) {
+        dieUsage();
+    }
+
+    arg.action = getAction(argv[1]);
+    strView tmp = newStrView(argv[2]);
+    if (!strIsNumeric(tmp))
+        dieUsage();
+    arg.amount = strToNumeric(tmp);
+
+    return arg;
 }
 
 void printBrightness(Device device)
 {
-	printf("%d\n", brightnessToPer(device, device.brightness));
+	printf("%d\n", brightnessToPercentage(device, device.brightness));
+}
+
+void excuteAction(Device device, enum DEVICE_ACTION action, int parm)
+{
+    switch (action) {
+        case SET:
+            setBrightness(device, parm);
+            break;
+        case UP:
+            adjustBrightness(device, parm);
+            break;
+        case DONW:
+            adjustBrightness(device, -parm);
+            break;
+        case PRINT:
+            printBrightness(device);
+            break;
+        default:
+            die("Unkown action");
+    }
 }
 
 int main(int argc, char **argv)
 {
-	if (argc == 1) {
-		printDevices();
-		return EXIT_SUCCESS;
-	}
-
-	Device device;
-	initDevice(&device, argv[1]);
-
-	if (argc == 2)
-		printBrightness(device);
-	else if (argc == 4)
-		brightnessAction(device, 
-				         newStrView(argv[2]), 
-						 newStrView(argv[3]));		
-	else
-		printUsage();
-
+    Argument arg = parseArg(argc, argv);
+	Device device = newDevice(arg.deviceName);
+    excuteAction(device, arg.action, arg.amount);
 	return EXIT_SUCCESS;
 }

@@ -3,35 +3,22 @@
 
 #include <stdio.h>
 
-typedef enum {
-	OK,
-	FILE_NOT_FOUND,
-	SCANF_ERROR,
-	FILE_READ_ERROR,
-	FILE_WRITE_ERROR,
-	UNKNOWN,
-} ERROR;
+typedef const char *ERROR;
 
-const char *errorToStr(ERROR e);
+const ERROR OK               = 0;
+
+const ERROR FILE_NOT_FOUND   = "File not found";
+const ERROR FILE_READ_ERROR  = "File read error";
+const ERROR FILE_WRITE_ERROR = "File write error";
+const ERROR SCANF_ERROR      = "Scanf input not as expected";
+
 void printError(const char *label, ERROR e);
 
 #ifdef ERROR_IMPL
 
-const char *errorToStr(ERROR e)
-{
-	switch (e) {
-	  case FILE_NOT_FOUND:   return "File not found";
-	  case SCANF_ERROR:      return "Scanf error";
-	  case FILE_READ_ERROR:  return "File read error";
-	  case FILE_WRITE_ERROR: return "File write error";
-	  case UNKNOWN:          return "Unknown error";
-	  default:               return "Invalid error code";
-	}
-}
-
 void printError(const char *label, ERROR e)
 {
-	printf("%s: %s\n", label, errorToStr(e));
+    fprintf(stderr, "%s: %s\n", label, e);
 }
 
 #endif

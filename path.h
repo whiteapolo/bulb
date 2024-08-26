@@ -4,14 +4,14 @@
 #include "string.h"
 #include "error.h"
 #include <dirent.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
-#ifndef lambda
-	#define lambda(return_type, function_body) \
-	({ \
-		  return_type __fn__ function_body \
-			  __fn__; \
-	})
-#endif
+#define lambda(return_type, function_body)  \
+({                                          \
+    return_type __fn__ function_body        \
+    __fn__;                                 \
+ })
 
 strView getPathTail(const char *path);
 
@@ -28,13 +28,19 @@ int getFileSize(FILE *fp);
 ERROR readWholeFile(string *s, const char *fileName);
 ERROR readWholeFileB(string *s, const char *fileName, int maxBytes);
 
-ERROR scanfFileByName(const char *fileName, const char *fmt, ...);
-ERROR writeFileByName(const char *fileName, const char *fmt, ...);
-ERROR appendFileByName(const char *fileName, const char *fmt, ...);
+ERROR scanFile(const char *fileName, const char *fmt, ...);
+ERROR echoToFile(const char *fileName, const char *fmt, ...);
+ERROR echoAppendToFile(const char *fileName, const char *fmt, ...);
 
-ERROR forEveryFileInDir(const char *dir, void (*action)(const char *));
-ERROR forEveryHiddenFileInDir(const char *dir, void (*action)(const char *));
-ERROR forEveryRegFileInDir(const char *dir, void (*action)(const char *));
+ERROR dirTraverse(const char *dir, void (*action)(const char *));
+ERROR dirTraverseHiddenFiles(const char *dir, void (*action)(const char *));
+ERROR dirTraverseVisibleFiles(const char *dir, void (*action)(const char *));
+
+bool isdir(const char *fmt, ...);
+
+bool isregfile(const char *fileName);
+
+bool isfile(const char *fileName);
 
 #ifdef PATH_IMPL
 
@@ -127,7 +133,7 @@ ERROR readWholeFileB(string *s, const char *fileName, int maxBytes)
 	return OK;
 }
 
-ERROR scanfFileByName(const char *fileName, const char *fmt, ...)
+ERROR scanFile(const char *fileName, const char *fmt, ...)
 {
 	va_list ap;
 	va_start(ap, fmt);
@@ -144,7 +150,7 @@ ERROR scanfFileByName(const char *fileName, const char *fmt, ...)
 	return OK;
 }
 
-ERROR writeFileByName(const char *fileName, const char *fmt, ...)
+ERROR echoToFile(const char *fileName, const char *fmt, ...)
 {
 	va_list ap;
 	va_start(ap, fmt);
@@ -159,7 +165,7 @@ ERROR writeFileByName(const char *fileName, const char *fmt, ...)
 	return OK;
 }
 
-ERROR appendFileByName(const char *fileName, const char *fmt, ...)
+ERROR echoAppendToFile(const char *fileName, const char *fmt, ...)
 {
 	va_list ap;
 	va_start(ap, fmt);
@@ -174,7 +180,7 @@ ERROR appendFileByName(const char *fileName, const char *fmt, ...)
 	return OK;
 }
 
-ERROR forEveryFileInDir(const char *dir, void (*action)(const char *))
+ERROR dirTraverse(const char *dir, void (*action)(const char *))
 {
 	struct dirent *de;
 	DIR *dr = opendir(dir);
@@ -189,20 +195,43 @@ ERROR forEveryFileInDir(const char *dir, void (*action)(const char *))
 	return OK;
 }
 
-ERROR forEveryHiddenFileInDir(const char *dir, void (*action)(const char *))
+ERROR dirTraverseHiddenFiles(const char *dir, void (*action)(const char *))
 {
-	return forEveryFileInDir(dir, lambda(void, (const char *fileName) {
+	return dirTraverse(dir, lambda(void, (const char *fileName) {
 		if (*fileName == '.')
 			action(fileName);
 	}));
 }
 
-ERROR forEveryRegFileInDir(const char *dir, void (*action)(const char *))
+ERROR dirTraverseVisibleFiles(const char *dir, void (*action)(const char *))
 {
-	return forEveryFileInDir(dir, lambda(void, (const char *fileName) {
+	return dirTraverse(dir, lambda(void, (const char *fileName) {
 		if (*fileName != '.')
 			action(fileName);
 	}));
+}
+
+bool isdir(const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    strStack tmp = newStrVa(fmt, ap);
+	struct stat sb;
+	stat(tmp.data, &sb);
+    va_end(ap);
+	return S_ISDIR(sb.st_mode);
+}
+
+bool isregfile(const char *fileName)
+{
+	struct stat sb;
+	stat(fileName, &sb);
+	return S_ISREG(sb.st_mode);
+}
+
+bool isfile(const char *fileName)
+{
+	return !access(fileName, F_OK);
 }
 
 #endif

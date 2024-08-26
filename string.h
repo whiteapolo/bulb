@@ -8,13 +8,11 @@
 #include <string.h>
 #include <ctype.h>
 
-#ifndef lambda
-	#define lambda(return_type, function_body) \
-	({ \
-		  return_type __fn__ function_body \
-			  __fn__; \
-	})
-#endif
+#define lambda(return_type, function_body)  \
+({                                          \
+    return_type __fn__ function_body        \
+    __fn__;                                 \
+ })
 
 typedef struct {
 	char *data;
@@ -35,6 +33,19 @@ typedef string strStack;
 			alloca((s##__COUNTER__.len + 1) * sizeof(char)); \
     snprintf(s##__COUNTER__.data,                            \
 			s##__COUNTER__.len + 1, fmt, ##__VA_ARGS__);     \
+    s##__COUNTER__;                                          \
+})
+
+#define newStrStackVa(fmt, ap)                               \
+({                                                           \
+    strStack s##__COUNTER__;                                 \
+    va_list __apCopy;                                        \
+    va_copy(__apCopy, ap);                                   \
+    s##__COUNTER__.len = getFmtSizeVa(fmt, ap);              \
+    s##__COUNTER__.data =                                    \
+			alloca((s##__COUNTER__.len + 1) * sizeof(char)); \
+    vsnprintf(s##__COUNTER__.data,                           \
+			s##__COUNTER__.len + 1, fmt, apCopy);            \
     s##__COUNTER__;                                          \
 })
 
