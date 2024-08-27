@@ -146,6 +146,7 @@ ERROR scanFile(const char *fileName, const char *fmt, ...)
 	if (vfscanf(fp, fmt, ap) == EOF)
 		return SCANF_ERROR;
 
+    fclose(fp);
 	va_end(ap);
 	return OK;
 }
@@ -162,6 +163,7 @@ ERROR echoToFile(const char *fileName, const char *fmt, ...)
 
 	vfprintf(fp, fmt, ap);
 	va_end(ap);
+    fclose(fp);
 	return OK;
 }
 
@@ -177,6 +179,7 @@ ERROR echoAppendToFile(const char *fileName, const char *fmt, ...)
 
 	vfprintf(fp, fmt, ap);
 	va_end(ap);
+    fclose(fp);
 	return OK;
 }
 
@@ -215,7 +218,7 @@ bool isdir(const char *fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);
-    strStack tmp = newStrVa(fmt, ap);
+    strStack tmp = newStrStackVa(fmt, ap);
 	struct stat sb;
 	stat(tmp.data, &sb);
     va_end(ap);

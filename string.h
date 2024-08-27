@@ -45,7 +45,7 @@ typedef string strStack;
     s##__COUNTER__.data =                                    \
 			alloca((s##__COUNTER__.len + 1) * sizeof(char)); \
     vsnprintf(s##__COUNTER__.data,                           \
-			s##__COUNTER__.len + 1, fmt, apCopy);            \
+			s##__COUNTER__.len + 1, fmt, __apCopy);            \
     s##__COUNTER__;                                          \
 })
 
