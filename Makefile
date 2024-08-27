@@ -1,7 +1,7 @@
 # Variables
 CC = cc
 CFLAGS = -Wall -Wextra -O3
-TARGET = mylight
+TARGET = bulb
 PREFIX = ~/.local/bin
 
 # Default rule
