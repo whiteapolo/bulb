@@ -45,7 +45,7 @@ typedef string strStack;
     s##__COUNTER__.data =                                    \
 			alloca((s##__COUNTER__.len + 1) * sizeof(char)); \
     vsnprintf(s##__COUNTER__.data,                           \
-			s##__COUNTER__.len + 1, fmt, __apCopy);            \
+			s##__COUNTER__.len + 1, fmt, apCopy);            \
     s##__COUNTER__;                                          \
 })
 
@@ -88,6 +88,10 @@ strView strTokStart(string s, const char *delim);
 
 strView strTok(string s, strView previuosView, const char *delim);
 
+void strForEachTok(string s, const char *delim, void (*action)(strView));
+
+void strForEach(string s, void (*action)(char));
+
 int strCountc(string haystack, char needle);
 
 int strCounts(string haystack, string needle);
@@ -112,7 +116,9 @@ bool strIsNumeric(string s);
 
 void strTrim(string *s);
 
-void strFree(string s);
+int strDisplayedLength(const string s);
+
+void strFree(string *s);
 
 void strPrint(string s);
 
@@ -247,7 +253,7 @@ void strPushs(string *s, const char *fmt, ...)
 	for (int i = 0; i < tmp.len; i++)
 		strPushc(s, tmp.data[i]);
 
-	strFree(tmp);
+	strFree(&tmp);
 }
 
 void strPush(string *s, string src)
@@ -336,6 +342,12 @@ void strForEachTok(string s, const char *delim, void (*action)(strView))
 	}
 }
 
+void strForEach(string s, void (*action)(char))
+{
+    for (int i = 0; i < s.len; i++)
+        action(s.data[i]);
+}
+
 int strCountc(string haystack, char needle)
 {
 	int count = 0;
@@ -395,7 +407,7 @@ void strReplace(string *s, string sub, string by, int maxOccurrences)
 	// push the rest of the string
 	strPushs(&result, "%.*s", s->len - i, s->data + i);
 
-	strFree(*s);
+	strFree(&*s);
 	*s = result;
 }
 
@@ -416,7 +428,7 @@ void strReverse(string *s)
 	for (int i = s->len - 1; i >= 0; --i)
 		strPushc(&tmp, s->data[i]);
 
-	strFree(*s);
+	strFree(&*s);
 	*s = tmp;
 }
 
@@ -458,18 +470,48 @@ void strTrim(string *s)
 
 	strView view = newStrViewRange(*s, start, end + 1);
 	string tmp = newStrFromExisting(view);
-	strFree(*s);
+	strFree(&*s);
 	*s = tmp;
 }
 
-void strFree(string s)
+int strDisplayedLength(const string s)
 {
-	free(s.data);
+    bool escapeSeq = false;
+    int len = 0;
+    strForEach(s, lambda(void, (char c) {
+
+        if (c == '\e') {
+            escapeSeq = true;
+            return;
+        }
+        
+        if (escapeSeq && c == 'm') {
+            escapeSeq = false;
+            return;
+        }
+
+        if (escapeSeq)
+            return;
+
+        if (c == '\t')
+            len += 7;
+
+        len++;
+    }));
+    return len;
+}
+
+void strFree(string *s)
+{
+    if (s->len > 0) {
+	    free(s->data);
+        s->len = 0;
+    }
 }
 
 void strPrint(string s)
 {
-	printf("%s", s.data);
+    printf("%.*s", s.len, s.data);
 }
 
 static void strDir(const char *msg)

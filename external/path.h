@@ -36,6 +36,8 @@ ERROR dirTraverse(const char *dir, void (*action)(const char *));
 ERROR dirTraverseHiddenFiles(const char *dir, void (*action)(const char *));
 ERROR dirTraverseVisibleFiles(const char *dir, void (*action)(const char *));
 
+int getCommandOutput(const char *command, string *output, int maxBytes);
+
 bool isdir(const char *fmt, ...);
 
 bool isregfile(const char *fileName);
@@ -117,9 +119,7 @@ ERROR readWholeFileB(string *s, const char *fileName, int maxBytes)
 	expandPath(&expandedPath);
 
 	FILE *fp = fopen(expandedPath.data, "r");
-	strFree(expandedPath);
-
-	*s = newStr("");
+	strFree(&expandedPath);
 
 	if (fp == NULL)
 		return FILE_NOT_FOUND;
@@ -143,11 +143,13 @@ ERROR scanFile(const char *fileName, const char *fmt, ...)
 	if (fp == NULL)
 		return FILE_NOT_FOUND;
 
-	if (vfscanf(fp, fmt, ap) == EOF)
+	if (vfscanf(fp, fmt, ap) == EOF) {
+        fclose(fp);
 		return SCANF_ERROR;
+    }
 
-    fclose(fp);
 	va_end(ap);
+    fclose(fp);
 	return OK;
 }
 
@@ -163,7 +165,6 @@ ERROR echoToFile(const char *fileName, const char *fmt, ...)
 
 	vfprintf(fp, fmt, ap);
 	va_end(ap);
-    fclose(fp);
 	return OK;
 }
 
@@ -179,7 +180,6 @@ ERROR echoAppendToFile(const char *fileName, const char *fmt, ...)
 
 	vfprintf(fp, fmt, ap);
 	va_end(ap);
-    fclose(fp);
 	return OK;
 }
 
@@ -214,11 +214,26 @@ ERROR dirTraverseVisibleFiles(const char *dir, void (*action)(const char *))
 	}));
 }
 
+int getCommandOutput(const char *command, string *output, int maxBytes)
+{
+    FILE *fp = popen(command, "r");
+        
+    if (fp == NULL)
+        return -1;
+
+    char c;
+
+    while ((c = fgetc(fp)) != EOF && output->len != maxBytes)
+        strPushc(output, c);
+
+    return pclose(fp);
+}
+
 bool isdir(const char *fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);
-    strStack tmp = newStrStackVa(fmt, ap);
+    strStack tmp = newStrVa(fmt, ap);
 	struct stat sb;
 	stat(tmp.data, &sb);
     va_end(ap);

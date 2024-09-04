@@ -8,16 +8,16 @@
 #include <ctype.h>
 
 #define MAP_IMPL
-#include "map.h"
+#include "external/map.h"
 
 #define STRING_IMPL
-#include "string.h"
+#include "external/string.h"
 
 #define ERROR_IMPL
-#include "error.h"
+#include "external/error.h"
 
 #define PATH_IMPL
-#include "path.h"
+#include "external/path.h"
 
 #define MAX_PATH_LEN 256
 #define MIN_BRIGHTNESS_PERCENTAGE 0.1
