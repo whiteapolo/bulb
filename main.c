@@ -1,214 +1,167 @@
+#include <linux/limits.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <dirent.h>
 #include <errno.h>
 #include <string.h>
-#include <stdarg.h>
 #include <ctype.h>
 
-#define MAP_IMPL
-#include "external/map.h"
-
 #define STRING_IMPL
-#include "external/string.h"
-
-#define ERROR_IMPL
-#include "external/error.h"
+#include "mystb/string.h"
 
 #define PATH_IMPL
-#include "external/path.h"
+#include "mystb/path.h"
 
-#define MAX_PATH_LEN 256
-#define MIN_BRIGHTNESS_PERCENTAGE 0.1
-#define MAX_BRIGHTNESS_PERCENTAGE 100.0
+const float MAX_BRIGHTNESS_PERCENTAGE = 100.0;
+const float MIN_BRIGHTNESS_PERCENTAGE = 0.1;
 
 typedef struct {
-	char maxBrightnessPath[MAX_PATH_LEN];
-	char brightnessPath[MAX_PATH_LEN];
+	string maxBrightnessPath;
+	string brightnessPath;
 	int brightness;
 	int maxBrightness;
 } Device;
 
 typedef struct {
-    const char *deviceName;
-    const char *action;
-    float amount;
-} Argument;
+	const char *action;
+	float amount;
+} Arg;
 
-Device setBrightness(Device, float percentage);
-Device increaseBrightness(Device, float percentage);
-Device decreaseBrightness(Device, float percentage);
-Device printBrightness(Device, float);
+const char *USAGE =
+"Usage: <command> <amount>\n"
+"Commands:\n"
+"	set <amount>\n"
+"	up <amount>\n"
+"	down <amount>";
 
-const char *getUsage()
-{
-    return "Usage: <set|up|down> <amount>";
-}
-
-void pdie(const char *label, ERROR e)
-{
-	printError(label, e);
-	exit(EXIT_FAILURE);
-}
+const Arg DEFAULT_ARGUMENT = {
+	.action = "print",
+	.amount = 0,
+};
 
 void die(const char *fmt, ...)
 {
-    va_list ap;
-    va_start(ap, fmt);
-    vfprintf(stderr, fmt, ap);
-    fprintf(stderr, "\n");
-    exit(EXIT_FAILURE);
+	va_list ap;
+	va_start(ap, fmt);
+	vfprintf(stderr, fmt, ap);
+	fprintf(stderr, "\n");
+	exit(EXIT_FAILURE);
 }
 
-void dieUsage()
+float getPercentage(const float value, const float max)
 {
-    die(getUsage());
+	return (value * 100) / max;
 }
 
-float getPercentage(float value, float max)
+float getValueFromPercentage(const float percentage, const float max)
 {
-    return (value * 100) / max;
+	return (percentage * max) / 100;
 }
 
-float getValueFromPercentage(float percentage, float max)
+int getCurrentPercentage(const Device *device)
 {
-    return (percentage * max) / 100;
-}
-
-int getCurrentPercentage(Device device)
-{
-    return getPercentage(device.brightness, device.maxBrightness);
+	return getPercentage(device->brightness, device->maxBrightness);
 }
 
 float clampValue(float min, float value, float max)
 {
-    return value < min ? min : (value > max ? max : value);
+	if (value < min)
+		return min;
+	if (value > max)
+		return max;
+	return value;
 }
 
-Device newDevice(const char *deviceName)
+Device createDevice(const char *deviceName)
 {
-	ERROR e;
-    Device device;
+	Device device;
+	device.brightnessPath = newStr("/sys/class/backlight/%s/brightness", deviceName);
+	device.maxBrightnessPath = newStr("/sys/class/backlight/%s/max_brightness", deviceName);
 
-    snprintf(device.brightnessPath, MAX_PATH_LEN, "/sys/class/backlight/%s/brightness", deviceName);
-    snprintf(device.maxBrightnessPath, MAX_PATH_LEN, "/sys/class/backlight/%s/max_brightness", deviceName);
+	if (readFile(device.maxBrightnessPath.data, "%d", &device.maxBrightness) == Err)
+		die("Error: Could not read brightness from %s", device.maxBrightnessPath.data);
 
-    e = scanFile(device.maxBrightnessPath, "%d", &device.maxBrightness);
-	if (e != OK)
-		pdie("initDevice", e);
+	if (readFile(device.brightnessPath.data, "%d", &device.brightness) == Err)
+		die("Error: Could not read brightness from %s", device.brightnessPath.data);
 
-    e = scanFile(device.brightnessPath, "%d", &device.brightness);
-	if (e != OK)
-		pdie("initDevice", e);
-
-    return device;
+	return device;
 }
 
-void printDevice(const char *fileName)
+void freeDevice(Device *device)
 {
-	printf("%s\n", fileName);
+	strFree(&device->brightnessPath);
+	strFree(&device->maxBrightnessPath);
 }
 
-void printDevices()
+void writeDeviceChanges(const Device *device)
 {
-	dirTraverseVisibleFiles("/sys/class/backlight/", printDevice);
+	if (echoFileWrite(device->brightnessPath.data, "%d", device->brightness) == Err)
+		die("failed to write file %s", device->brightnessPath);
 }
 
-void writeDeviceChanges(Device device)
+void setBrightness(Device *device, const float percentage)
 {
-	ERROR e = echoToFile(device.brightnessPath, "%d", device.brightness);
-
-	if (e != OK)
-		pdie("writeDeviceChanges", e);
+	const float min = MIN_BRIGHTNESS_PERCENTAGE;
+	const float max = MAX_BRIGHTNESS_PERCENTAGE;
+	const float newPercentage = clampValue(min, percentage, max);
+	device->brightness = getValueFromPercentage(newPercentage, device->maxBrightness);
 }
 
-Device setBrightness(Device device, float percentage)
+void adjustBrightness(Device *device, const float deltaPercentage)
 {
-    float min = MIN_BRIGHTNESS_PERCENTAGE;
-    float max = MAX_BRIGHTNESS_PERCENTAGE;
-    device.brightness = getValueFromPercentage(clampValue(min, percentage, max), device.maxBrightness);
-    return device;
-}
-
-Device increaseBrightness(Device device, float percentage)
-{
-	return setBrightness(device, getCurrentPercentage(device) + percentage);
-}
-
-Device decreaseBrightness(Device device, float percentage)
-{
-	return setBrightness(device, getCurrentPercentage(device) - percentage);
+	const int newPercentage = getCurrentPercentage(device) + deltaPercentage;
+	setBrightness(device, newPercentage);
 }
 
 const char *findDefaultDeviceName()
 {
-    if (isdir("/sys/class/backlight/intel_backlight"))
-        return "intel_backlight";
-    if (isdir("/sys/class/backlight/acpi_video0"))
-        return "acpi_video0";
-    die("Could not find suitable devices"); 
-    return NULL;
+	if (isDir("/sys/class/backlight/intel_backlight"))
+		return "intel_backlight";
+	if (isDir("/sys/class/backlight/acpi_video0"))
+		return "acpi_video0";
+	die("Could not find suitable devices");
+	return NULL;
 }
 
-Argument parseArg(int argc, char **argv)
+Arg parseArg(int argc, char **argv)
 {
-    Argument arg;
-    arg.deviceName = findDefaultDeviceName();
-
-    if (argc == 1) {
-        arg.action = "print";
-        return arg;
-    }
-
-    if (argc != 3) {
-        dieUsage();
-    }
-
-    arg.action = argv[1];
-
-    char *endPtr;
-    arg.amount = strtof(argv[2], &endPtr);
-    if (*endPtr)
-        dieUsage();
-    return arg;
+	Arg arg;
+	if (argc == 1)
+		arg = DEFAULT_ARGUMENT;
+	else if (argc == 3 && sscanf(argv[2], "%f", &arg.amount) == 1)
+		arg.action = argv[1];
+	else
+		die(USAGE);
+	return arg;
 }
 
-Device printBrightness(Device device, float)
+void printBrightness(const Device *device)
 {
-	printf("%d%%\n", (int)getPercentage(device.brightness, device.maxBrightness));
-    return device;
+	const int percentInt = getPercentage(device->brightness, device->maxBrightness);
+	printf("%d%%\n", percentInt);
 }
 
-map newActionMap()
+void executeAction(Device *device, const Arg *arg)
 {
-    map m = newMap((cmpKeysType)strcmp);
-    mapInsert(&m, "set", setBrightness);
-    mapInsert(&m, "up", increaseBrightness);
-    mapInsert(&m, "down", decreaseBrightness);
-    mapInsert(&m, "print", printBrightness);
-    return m;
-}
-
-Device executeAction(map actionMap, Device device, Argument arg)
-{
-    Device (*actionSelected)(Device, float percentage) = mapFind(actionMap, arg.action);
-
-    if (actionSelected == NULL)
-        die("Unkown action: '%s'", arg.action);
-
-    return actionSelected(device, arg.amount);
+	if (strcmp(arg->action, "set") == 0)
+		setBrightness(device, arg->amount);
+	else if (strcmp(arg->action, "up") == 0)
+		adjustBrightness(device, arg->amount);
+	else if (strcmp(arg->action, "down") == 0)
+		adjustBrightness(device, -arg->amount);
+	else if (strcmp(arg->action, "print") == 0)
+		printBrightness(device);
+	else
+		die("Unkown action: '%s'", arg->action);
 }
 
 int main(int argc, char **argv)
 {
-    map actionMap = newActionMap();
-    Argument arg = parseArg(argc, argv);
-    Device device = newDevice(arg.deviceName);
-
-    device = executeAction(actionMap, device, arg);
-    writeDeviceChanges(device);
-
-    mapFree(actionMap, NULL, NULL);
+	const Arg arg = parseArg(argc, argv);
+	Device device = createDevice(findDefaultDeviceName());
+	executeAction(&device, &arg);
+	writeDeviceChanges(&device);
+	freeDevice(&device);
 	return EXIT_SUCCESS;
 }
