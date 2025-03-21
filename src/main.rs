@@ -123,7 +123,7 @@ fn execute_action(device: &mut Device, action: Action) {
         Action::Set(amount) => device.set_brightness(amount),
         Action::Up(amount) => device.adjust_brightness(amount),
         Action::Down(amount) => device.adjust_brightness(-amount),
-        Action::Print() => println!("{}%", device.get_brightness_percentage()),
+        Action::Print() => println!("{}%", device.get_brightness_percentage() as i32),
     }
 }
 
