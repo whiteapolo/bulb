@@ -6,6 +6,16 @@ use std::error::Error;
 use std::env;
 use std::process::exit;
 
+const USAGE: &str = r#"
+Usage: <command> <amount>
+
+    Commands:
+    set <amount>
+    up <amount>
+    down <amount>
+
+"#;
+
 enum Action {
     Set(f32),
     Up(f32),
@@ -14,11 +24,7 @@ enum Action {
 }
 
 fn print_usage() {
-    println!("Usage: <command> <amount>");
-    println!("Commands:");
-    println!("\tset <amount>");
-    println!("\tup <amount>");
-    println!("\tdown <amount>");
+    print!("{}", USAGE);
 }
 
 fn die_usage() {
