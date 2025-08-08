@@ -1,0 +1,9 @@
+{
+	"authors": [
+		"white"
+	],
+	"copyright": "Copyright © 2025, white",
+	"description": "backlight controler",
+	"license": "MIT",
+	"name": "bulb"
+}

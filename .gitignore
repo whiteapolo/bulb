@@ -1,0 +1,16 @@
+.dub
+docs.json
+__dummy.html
+docs/
+/bulb
+bulb.so
+bulb.dylib
+bulb.dll
+bulb.a
+bulb.lib
+bulb-test-*
+*.exe
+*.pdb
+*.o
+*.obj
+*.lst
