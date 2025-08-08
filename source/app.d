@@ -15,7 +15,6 @@ const string[] POSSIBLE_DEVICES = [
 
 string detectDevicePath()
 {
-
     foreach (devicePath; POSSIBLE_DEVICES)
     {
         if (devicePath.exists)
