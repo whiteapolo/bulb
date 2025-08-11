@@ -35,15 +35,19 @@ int run(string[] args)
   writeln("[CMD]: ", args);
   auto status = wait(spawnProcess(args));
 
-  if (status)
+  if (status) {
     writeln("[ERROR]: exited abnormally with code ", status);
+  }
+
   return status;
 }
 
 int build()
 {
-  if (!should_rebuild(TARGET, SRC))
+  if (!should_rebuild(TARGET, SRC)) {
     return 0;
+  }
+
   return run(["rdmd", "--build-only", "-of=" ~ TARGET] ~ SRC);
 }
 
@@ -60,8 +64,9 @@ int install()
 {
   int status = build();
 
-  if (status != 0)
+  if (status != 0) {
     return status;
+  }
 
   try {
     copy(TARGET, "/usr/bin/" ~ TARGET);
@@ -74,8 +79,9 @@ int install()
 
 int main(string[] args)
 {
-  if (args.length == 1)
+  if (args.length == 1) {
     return build();
+  }
 
   foreach (arg; args[1..$]) {
     switch (arg) {

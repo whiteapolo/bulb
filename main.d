@@ -15,10 +15,8 @@ const string[] POSSIBLE_DEVICES = [
 
 string detectDevicePath()
 {
-    foreach (devicePath; POSSIBLE_DEVICES)
-    {
-        if (devicePath.exists)
-        {
+    foreach (devicePath; POSSIBLE_DEVICES) {
+        if (devicePath.exists) {
             return devicePath;
         }
     }
@@ -51,40 +49,34 @@ void setBrightness(float value)
 
 void argumentHandler(string option, string value)
 {
-    final switch (option)
-    {
-    case "up":
-        setBrightness(getBrightness() + (to!float(value)));
-        break;
-    case "down":
-        setBrightness(getBrightness() - (to!float(value)));
-        break;
-    case "set":
-        setBrightness(to!float(value));
-        break;
+    final switch (option) {
+      case "up":
+          setBrightness(getBrightness() + (to!float(value)));
+          break;
+      case "down":
+          setBrightness(getBrightness() - (to!float(value)));
+          break;
+      case "set":
+          setBrightness(to!float(value));
+          break;
     }
 }
 
 int main(string[] args)
 {
-    if (args.length == 1)
-    {
+    if (args.length == 1) {
         writeln(getBrightness(), "%");
         return 0;
     }
 
-    try
-    {
+    try {
         auto opt = getopt(args, "set", &argumentHandler, "up",
                 &argumentHandler, "down", &argumentHandler);
 
-        if (opt.helpWanted)
-        {
+        if (opt.helpWanted) {
             defaultGetoptPrinter("set screen backlight.", opt.options);
         }
-    }
-    catch (Exception e)
-    {
+    } catch (Exception e) {
         writeln(e.msg);
     }
 
