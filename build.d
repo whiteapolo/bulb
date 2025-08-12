@@ -138,7 +138,7 @@ int install()
 int uninstall()
 {
   try {
-    remove("/usr/bin/" ~ TARGET);
+    removeLog(INSTALL_FOLDER ~ "/" ~ TARGET);
   } catch (Exception e) {
     writeln(e.msg);
     return 1;
