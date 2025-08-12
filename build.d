@@ -8,6 +8,7 @@ import std.getopt;
 
 string TARGET = "bulb";
 string[] SRC = ["main.d"];
+string INSTALL_FOLDER = "/usr/local/bin";
 
 SysTime getModificationTime(string fileName)
 {
@@ -42,7 +43,7 @@ int run(string[] args)
   return status;
 }
 
-void removeLog(string file)
+int removeLog(string file)
 {
   writeln("[REMOVE]: ", file);
 
@@ -50,10 +51,13 @@ void removeLog(string file)
     remove(file);
   } catch (Exception e) {
     writeln("[ERROR]: ", e.msg);
+    return 1;
   }
+
+  return 0;
 }
 
-void renameLog(string src, string target)
+int renameLog(string src, string target)
 {
   writefln("[RENAME]: %s -> %s", src, target);
 
@@ -61,7 +65,24 @@ void renameLog(string src, string target)
     rename(src, target);
   } catch (Exception e) {
     writeln("[ERROR]: ", e.msg);
+    return 1;
   }
+
+  return 0;
+}
+
+int copyLog(string src, string target)
+{
+  writefln("[COPY]: %s -> %s", src, target);
+
+  try {
+    copy(src, target);
+  } catch (Exception e) {
+    writeln("[ERROR]: ", e.msg);
+    return 1;
+  }
+
+  return 0;
 }
 
 void rebuild_youself(string binary)
@@ -111,13 +132,7 @@ int install()
     return status;
   }
 
-  try {
-    copy(TARGET, "/usr/bin/" ~ TARGET);
-  } catch (Exception e) {
-    writeln(e.msg);
-  }
-
-  return 0;
+  return run(["cp", "-p", TARGET, INSTALL_FOLDER ~ "/" ~ TARGET]);
 }
 
 int uninstall()
@@ -135,8 +150,6 @@ int uninstall()
 int main(string[] args)
 {
   rebuild_youself("build");
-  writeln(args);
-
 
   if (args.length == 1) {
     return build();

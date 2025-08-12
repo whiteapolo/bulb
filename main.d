@@ -65,7 +65,7 @@ void argumentHandler(string option, string value)
 int main(string[] args)
 {
     if (args.length == 1) {
-        writeln(getBrightness(), "%");
+        writefln("%.2f%%", getBrightness());
         return 0;
     }
 
