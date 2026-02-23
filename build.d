@@ -4,7 +4,6 @@ import std.file : getTimes, rename, remove, copy, PreserveAttributes;
 import core.stdc.stdlib : exit;
 import std.process : wait, spawnProcess;
 import std.algorithm : any, map;
-import std.getopt;
 import std.path : stripExtension;
 import std.string : format;
 import std.array : join;
@@ -13,10 +12,10 @@ string TARGET = "bulb";
 string[] SRC = ["main.d"];
 string INSTALL_FOLDER = "/usr/local/bin";
 
-const string RESET = "\033[0m";
-const string GREEN = "\033[0;32m";
-const string YELLOW = "\033[0;33m";
-const string RED = "\033[0;31m";
+enum RESET = "\033[0m";
+enum GREEN = "\033[0;32m";
+enum YELLOW = "\033[0;33m";
+enum RED = "\033[0;31m";
 
 SysTime getModificationTime(string fileName)
 {

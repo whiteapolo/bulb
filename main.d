@@ -10,7 +10,8 @@ const float MIN_BRIGHTNESS = 0.1;
 const float MAX_BRIGHTNESS = 100.0;
 
 const string[] POSSIBLE_DEVICES = [
-    "/sys/class/backlight/intel_backlight", "/sys/class/backlight/acpi_video0"
+    "/sys/class/backlight/intel_backlight",
+    "/sys/class/backlight/acpi_video0"
 ];
 
 string detectDevicePath()
