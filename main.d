@@ -42,8 +42,7 @@ float getBrightness()
 void setBrightness(float value)
 {
     int maxBrightness = to!int(readText(getDevicePath() ~ "/max_brightness").strip());
-    int newBrightness = cast(int)(maxBrightness * clamp(value, MIN_BRIGHTNESS,
-            MAX_BRIGHTNESS) / 100.0);
+    int newBrightness = cast(int)(maxBrightness * clamp(value, MIN_BRIGHTNESS, MAX_BRIGHTNESS) / 100.0);
 
     std.file.write(getDevicePath() ~ "/brightness", to!string(newBrightness));
 }
@@ -51,15 +50,15 @@ void setBrightness(float value)
 void argumentHandler(string option, string value)
 {
     final switch (option) {
-      case "up":
-          setBrightness(getBrightness() + (to!float(value)));
-          break;
-      case "down":
-          setBrightness(getBrightness() - (to!float(value)));
-          break;
-      case "set":
-          setBrightness(to!float(value));
-          break;
+        case "up":
+            setBrightness(getBrightness() + (to!float(value)));
+            break;
+        case "down":
+            setBrightness(getBrightness() - (to!float(value)));
+            break;
+        case "set":
+            setBrightness(to!float(value));
+            break;
     }
 }
 
@@ -71,8 +70,12 @@ int main(string[] args)
     }
 
     try {
-        auto opt = getopt(args, "set", &argumentHandler, "up",
-                &argumentHandler, "down", &argumentHandler);
+        auto opt = getopt(
+                args, "set",
+                &argumentHandler, "up",
+                &argumentHandler, "down",
+                &argumentHandler
+        );
 
         if (opt.helpWanted) {
             defaultGetoptPrinter("set screen backlight.", opt.options);

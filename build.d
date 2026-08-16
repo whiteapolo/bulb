@@ -19,80 +19,80 @@ enum RED = "\033[0;31m";
 
 SysTime getModificationTime(string fileName)
 {
-  SysTime accessTime;
-  SysTime modificationTime;
-  getTimes(fileName, accessTime, modificationTime);
-  return modificationTime;
+    SysTime accessTime;
+    SysTime modificationTime;
+    getTimes(fileName, accessTime, modificationTime);
+    return modificationTime;
 }
 
 bool should_rebuild(string binary, string[] sources)
 {
-  try {
-    SysTime binaryModTime = getModificationTime(binary);
-    auto srcModTime = sources.map!(src => getModificationTime(src));
-    return any!(a => a > binaryModTime)(srcModTime);
-  } catch (Exception e) {
-    return true;
-  }
+    try {
+        SysTime binaryModTime = getModificationTime(binary);
+        auto srcModTime = sources.map!(src => getModificationTime(src));
+        return any!(a => a > binaryModTime)(srcModTime);
+    } catch (Exception e) {
+        return true;
+    }
 }
 
 void logInfo(T)(string action, T description)
 {
-  writefln("[%s%s%s]: %s", GREEN, action, RESET, description);
+    writefln("[%s%s%s]: %s", GREEN, action, RESET, description);
 }
 
 void logWarning(T)(T description)
 {
-  writefln("[%sWARNING%s]: %s", YELLOW, RESET, description);
+    writefln("[%sWARNING%s]: %s", YELLOW, RESET, description);
 }
 
 void logError(T)(T description)
 {
-  writefln("[%sERROR%s]: %s", RED, RESET, description);
+    writefln("[%sERROR%s]: %s", RED, RESET, description);
 }
 
 int run(string[] args)
 {
-  logInfo("CMD", join(args, " "));
-  auto status = wait(spawnProcess(args));
+    logInfo("CMD", join(args, " "));
+    auto status = wait(spawnProcess(args));
 
-  if (status) {
-    logError(format("exited %sabnormally%s with code %s%s%s", RED, RESET, RED, status, RESET));
-  }
+    if (status) {
+        logError(format("exited %sabnormally%s with code %s%s%s", RED, RESET, RED, status, RESET));
+    }
 
-  return status;
+    return status;
 }
 
 int logAction(T)(string action, T description, void delegate() fn)
 {
-  logInfo(action, description);
+    logInfo(action, description);
 
-  try {
-    fn();
-  } catch (Exception e) {
-    logError(e.msg);
-    return 1;
-  }
+    try {
+        fn();
+    } catch (Exception e) {
+        logError(e.msg);
+        return 1;
+    }
 
-  return 0;
+    return 0;
 }
 
 int removeLog(string file)
 {
-  return logAction("REMOVE", file, () => remove(file));
+    return logAction("REMOVE", file, () => remove(file));
 }
 
 int renameLog(string src, string target)
 {
-  return logAction("RENAME", src ~ " -> " ~ target, () => rename(src, target));
+    return logAction("RENAME", src ~ " -> " ~ target, () => rename(src, target));
 }
 
 int copyLog(string src, string target)
 {
-  return logAction(
-      "COPY", src ~ " -> " ~ target,
-      () => copy(src, target, PreserveAttributes.yes
-  ));
+    return logAction(
+            "COPY", src ~ " -> " ~ target,
+            () => copy(src, target, PreserveAttributes.yes
+    ));
 }
 
 void rebuild_youself(string[] args)
@@ -121,51 +121,51 @@ void rebuild_youself(string[] args)
 
 int build()
 {
-  if (!should_rebuild(TARGET, SRC)) {
-    return 0;
-  }
+    if (!should_rebuild(TARGET, SRC)) {
+        return 0;
+    }
 
-  return run(["rdmd", "--build-only", "-of=" ~ TARGET] ~ SRC);
+    return run(["rdmd", "--build-only", "-of=" ~ TARGET] ~ SRC);
 }
 
 int clean()
 {
-  return removeLog(TARGET);
+    return removeLog(TARGET);
 }
 
 int install()
 {
-  int status = build();
+    int status = build();
 
-  if (status != 0) {
-    return status;
-  }
+    if (status != 0) {
+        return status;
+    }
 
-  return copyLog(TARGET, INSTALL_FOLDER ~ "/" ~ TARGET);
+    return copyLog(TARGET, INSTALL_FOLDER ~ "/" ~ TARGET);
 }
 
 int uninstall()
 {
-  return removeLog(INSTALL_FOLDER ~ "/" ~ TARGET);
+    return removeLog(INSTALL_FOLDER ~ "/" ~ TARGET);
 }
 
 int main(string[] args)
 {
-  rebuild_youself(args);
+    rebuild_youself(args);
 
-  if (args.length == 1) {
-    return build();
-  }
-
-  foreach (arg; args[1..$]) {
-    switch (arg) {
-      case "install": install(); break;
-      case "clean": clean(); break;
-      case "build": build(); break;
-      case "uninstall": uninstall(); break;
-      default: writefln("Unknown option '%s'", arg);
+    if (args.length == 1) {
+        return build();
     }
-  }
 
-  return 0;
+    foreach (arg; args[1..$]) {
+        switch (arg) {
+            case "install": install(); break;
+            case "clean": clean(); break;
+            case "build": build(); break;
+            case "uninstall": uninstall(); break;
+            default: writefln("Unknown option '%s'", arg);
+        }
+    }
+
+    return 0;
 }
