@@ -1,6 +1,6 @@
 CC = cc
 RELEASE_CFLAGS = -Wall -Wextra -O3 -I./zlib/include
-DEV_CFLAGS = -O0 -g -I./zlib/include
+DEV_CFLAGS = -Wall -Wextra -O0 -g -I./zlib/include
 TARGET = bulb
 PREFIX = /usr/local/bin
 

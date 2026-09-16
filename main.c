@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include "zlib/include/z_path.h"
 #include "zlib/include/z_file.h"
 #include "zlib/include/z_error.h"
@@ -18,7 +19,7 @@ const char *POSSIBLE_DEVICES[] = {
 
 const char *search_device()
 {
-    for (int i = 0; i < ARRAY_LENGTH(POSSIBLE_DEVICES); i++) {
+    for (size_t i = 0; i < ARRAY_LENGTH(POSSIBLE_DEVICES); i++) {
         if (z_is_directory(POSSIBLE_DEVICES[i])) {
             return POSSIBLE_DEVICES[i];
         }
@@ -69,6 +70,24 @@ void print_current_brightness(const char *device)
     printf("%.2f%%\n", brightness_to_percentage(brightness, max_brightness));
 }
 
+void print_usage()
+{
+    printf("bulb [set|up|down] [0-100]\n");
+}
+
+int handle_action(int argc, char **argv)
+{
+    if (argc != 3) {
+        print_usage();
+        return 1;
+    }
+
+    const char *action = argv[1];
+    const char *value = argv[2];
+
+    return 0;
+}
+
 int main(int argc, char **argv)
 {
     const char *device = search_device();
@@ -79,4 +98,5 @@ int main(int argc, char **argv)
         return 0;
     }
 
+    return handle_action(argc, argv);
 }
