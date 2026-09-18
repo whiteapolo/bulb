@@ -163,6 +163,21 @@ void move_brightness(const char *device, float amount)
     set_brightness(device, current + amount);
 }
 
+void execute_input(const Bulb_Input *input, const char *device)
+{
+    switch (input->action) {
+        case SET:
+            set_brightness(device, input->value);
+            break;
+        case UP:
+            move_brightness(device, input->value);
+            break;
+        case DOWN:
+            move_brightness(device, -input->value);
+            break;
+    }
+}
+
 bool handle_action(int argc, char **argv, const char *device)
 {
     Bulb_Input input = {0};
@@ -171,17 +186,7 @@ bool handle_action(int argc, char **argv, const char *device)
         return false;
     }
 
-    switch (input.action) {
-        case SET:
-            set_brightness(device, input.value);
-            break;
-        case UP:
-            move_brightness(device, input.value);
-            break;
-        case DOWN:
-            move_brightness(device, -input.value);
-            break;
-    }
+    execute_input(&input, device);
 
     return true;
 }
