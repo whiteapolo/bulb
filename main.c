@@ -1,3 +1,4 @@
+#include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -15,8 +16,7 @@
 
 typedef enum {
     SET,
-    UP,
-    DOWN,
+    OFFSET,
 } Bulb_Action;
 
 typedef struct {
@@ -29,26 +29,24 @@ const char *POSSIBLE_DEVICES[] = {
     "/sys/class/backlight/acpi_video0"
 };
 
-bool str_to_float(const char *s, float *value)
+bool parse_float(const char *s, float *value)
 {
     char *end_ptr;
     *value = strtof(s, &end_ptr);
 
-    if (end_ptr == s + strlen(s)) {
+    if (*end_ptr == '\0' && isfinite(*value)) {
         return true;
     }
 
     return false;
 }
 
-bool str_to_action(const char *s, Bulb_Action *action)
+bool parse_action(const char *s, Bulb_Action *action)
 {
     if (strcmp(s, "set") == 0) {
         *action = SET;
-    } else if (strcmp(s, "up") == 0) {
-        *action = UP;
-    } else if (strcmp(s, "down") == 0) {
-        *action = DOWN;
+    } else if (strcmp(s, "offset") == 0) {
+        *action = OFFSET;
     } else {
         return false;
     }
@@ -134,7 +132,7 @@ void print_current_brightness(const char *device)
 
 void print_usage()
 {
-    printf("bulb [set|up|down] [0-100]\n");
+    printf("bulb [set|offset] [%%]\n");
 }
 
 bool parse_input(int argc, char **argv, Bulb_Input *input)
@@ -146,21 +144,21 @@ bool parse_input(int argc, char **argv, Bulb_Input *input)
     const char *action = argv[1];
     const char *value = argv[2];
 
-    if (!str_to_action(action, &input->action)) {
+    if (!parse_action(action, &input->action)) {
         return false;
     }
 
-    if (!str_to_float(value, &input->value)) {
+    if (!parse_float(value, &input->value)) {
         return false;
     }
 
     return true;
 }
 
-void move_brightness(const char *device, float amount)
+void offset_brightness(const char *device, float delta)
 {
     float current = get_brightness_percentage(device);
-    set_brightness(device, current + amount);
+    set_brightness(device, current + delta);
 }
 
 void execute_input(const Bulb_Input *input, const char *device)
@@ -169,11 +167,8 @@ void execute_input(const Bulb_Input *input, const char *device)
         case SET:
             set_brightness(device, input->value);
             break;
-        case UP:
-            move_brightness(device, input->value);
-            break;
-        case DOWN:
-            move_brightness(device, -input->value);
+        case OFFSET:
+            offset_brightness(device, input->value);
             break;
     }
 }
