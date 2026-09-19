@@ -1,11 +1,15 @@
 ## quick start
 ```console
-$ rdmd --build-only build.d
-$ ./build
+$ make
 $ ./bulb
 ```
 
 ## install
 ```console
-$ sudo ./build install
+$ sudo make install
+```
+
+## uninstall
+```console
+$ sudo make uninstall
 ```
