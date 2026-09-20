@@ -17,11 +17,14 @@ dev:
 clean:
 	rm -f $(TARGET)
 
-install: release
+udev:
+	cp ./90-backlight.rules /usr/lib/udev/rules.d/
+
+install: release udev
 	mkdir -p $(PREFIX)
 	cp $(TARGET) $(PREFIX)/$(TARGET)
 
 uninstall:
 	rm -f $(PREFIX)/$(TARGET)
 
-.PHONY: all clean install uninstall
+.PHONY: all dev release clean install uninstall udev
