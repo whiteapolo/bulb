@@ -1,18 +1,16 @@
 CC = cc
-RELEASE_CFLAGS = -Wall -Wextra -O3 -I./zlib/include
-DEV_CFLAGS = -Wall -Wextra -O0 -g -I./zlib/include
+RELEASE_CFLAGS = -Wall -Wextra -O3
+DEV_CFLAGS = -Wall -Wextra -O0 -g
 TARGET = bulb
 PREFIX = /usr/local/bin
 
 all: release
 
 release:
-	make -C zlib
-	$(CC) $(RELEASE_CFLAGS) -o $(TARGET) main.c ./zlib/libzatar.a
+	$(CC) $(RELEASE_CFLAGS) -o $(TARGET) main.c libzatar/libzatar.o
 
 dev:
-	make dev -C zlib
-	$(CC) $(DEV_CFLAGS) -o $(TARGET) main.c ./zlib/libzatar.a
+	$(CC) $(DEV_CFLAGS) -o $(TARGET) main.c libzatar/libzatar.o
 
 clean:
 	rm -f $(TARGET)

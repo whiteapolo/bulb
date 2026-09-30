@@ -3,7 +3,7 @@
 
 #include <stdlib.h>
 #include <stdbool.h>
-#include <z_array.h>
+#include "z_array.h"
 
 typedef void (*Z_Print_Fn)(const void *);
 typedef int (*Z_Compare_Fn)(const void *, const void *);

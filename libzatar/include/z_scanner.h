@@ -1,7 +1,7 @@
 #ifndef Z_SCANNER_H
 #define Z_SCANNER_H
 
-#include <z_string.h>
+#include "z_string.h"
 
 typedef struct {
     Z_String_View source;

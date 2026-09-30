@@ -2,15 +2,15 @@
 #define FILE_H
 
 #include <stdio.h>
-#include <z_heap.h>
-#include <z_string.h>
+#include "z_heap.h"
+#include "z_string.h"
 #include <dirent.h>
 
 typedef enum {
-    Z_Redirect_Stdin  = 1 << 0,
-    Z_Redirect_Stdout = 1 << 1,
-    Z_Redirect_Stderr = 1 << 2,
-} Z_Redirect;
+    Z_File_Redirect_Stdin  = 1 << 0,
+    Z_File_Redirect_Stdout = 1 << 1,
+    Z_File_Redirect_Stderr = 1 << 2,
+} Z_File_Redirect;
 
 typedef struct {
     FILE *stdin;
@@ -29,6 +29,6 @@ bool z_file_append(const char *pathname, const char *format, ...);
 bool z_file_scanf(const char *pathname, const char *format, ...);
 
 size_t z_file_read_line(FILE *fp, Z_String *out);
-Z_Piped_Process z_pipe_process(char *args[], Z_Redirect redirect);
+Z_Piped_Process z_pipe_process(char *args[], Z_File_Redirect redirect); // look
 
 #endif

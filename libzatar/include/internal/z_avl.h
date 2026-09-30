@@ -1,10 +1,10 @@
 #ifndef AVL_H
 #define AVL_H
 
-#include <z_types.h>
-#include <z_array.h>
-#include <z_compare.h>
-#include <z_heap.h>
+#include "../z_types.h"
+#include "../z_array.h"
+#include "../z_compare.h"
+#include "../z_heap.h"
 #include <stdbool.h>
 
 typedef struct Z_Avl_Node {

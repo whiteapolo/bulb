@@ -1,9 +1,9 @@
 #ifndef CLI_H
 #define CLI_H
 
-#include <z_heap.h>
-#include <z_array.h>
-#include <z_string.h>
+#include "z_heap.h"
+#include "z_array.h"
+#include "z_string.h"
 
 typedef enum {
     Z_GET_OPT_BOOL,

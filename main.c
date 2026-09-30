@@ -2,12 +2,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "zlib/include/z_path.h"
-#include "zlib/include/z_file.h"
-#include "zlib/include/z_error.h"
-#include "zlib/include/z_heap.h"
-#include "zlib/include/z_string.h"
-#include "zlib/include/z_clamp.h"
+#include "libzatar/include/z_path.h"
+#include "libzatar/include/z_file.h"
+#include "libzatar/include/z_error.h"
+#include "libzatar/include/z_heap.h"
+#include "libzatar/include/z_string.h"
+#include "libzatar/include/z_clamp.h"
 
 #define MIN_BRIGHTNESS 0.1f
 #define MAX_BRIGHTNESS 100.0f
@@ -57,7 +57,7 @@ bool parse_action(const char *s, Bulb_Action *action)
 const char *search_device()
 {
     for (size_t i = 0; i < ARRAY_LENGTH(POSSIBLE_DEVICES); i++) {
-        if (z_is_directory(POSSIBLE_DEVICES[i])) {
+        if (z_path_is_directory(POSSIBLE_DEVICES[i])) {
             return POSSIBLE_DEVICES[i];
         }
     }
@@ -82,7 +82,7 @@ int get_max_brightness(const char *device)
     int max_brightness;
 
     if (!z_file_scanf(path.ptr, "%d", &max_brightness)) {
-        z_perror_format("%s", path.ptr);
+        z_perror("%s", path.ptr);
         exit(1);
     }
 
@@ -96,7 +96,7 @@ int get_brightness(const char *device)
     int brightness;
 
     if (!z_file_scanf(path.ptr, "%d", &brightness)) {
-        z_perror_format("%s", path.ptr);
+        z_perror("%s", path.ptr);
         exit(1);
     }
 
@@ -120,7 +120,7 @@ void set_brightness(const char *device, float brightness_percentage)
     int new_brightness = percentage_to_brightness(clamped_percentage, max_brightness);
 
     if (!z_file_write(brightness_path.ptr, "%d", new_brightness)) {
-        z_perror_format("%s", brightness_path.ptr);
+        z_perror("%s", brightness_path.ptr);
         exit(1);
     }
 }
